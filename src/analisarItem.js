@@ -123,7 +123,7 @@ async function analisarItemCSGOEmpire(url) {
     };
 
     const custoBeneficioAtual = calcularCustoBeneficio(itemAtual.precoUSD, itemAtual.float);
-    const precoMaximo = +calcularPrecoMaximo(melhorItem.custoBeneficio, itemAtual.float);
+    const precoMaximo = +calcularPrecoMaximo(melhorItem.custoBeneficioReal, itemAtual.float);
     const diferencaPreco = +(itemAtual.precoUSD - precoMaximo);
 
     const meta = await page.evaluate(() => {

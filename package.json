@@ -1,6 +1,6 @@
 {
-  "name": "seu-projeto",
-  "version": "1.0.0",
+  "name": "apicsgoempire",
+  "version": "1.0.1",
   "type": "commonjs",
   "dependencies": {
     "body-parser": "^1.20.3",
@@ -10,7 +10,6 @@
     "jsdom": "^26.0.0",
     "node-telegram-bot-api": "^0.66.0",
     "oracledb": "^6.8.0",
-    "puppeteer": "^24.6.0",
-    "say": "^0.16.0"
+    "puppeteer": "^24.6.0"
   }
 }

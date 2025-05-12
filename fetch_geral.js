@@ -16,6 +16,22 @@ const TelegramBot = require('node-telegram-bot-api');
 const chatId = '5175130296';
 // Cria o bot
 const bot = new TelegramBot(process.env.telegranBotToken, {polling: true});
+//comandos bot
+
+bot.onText(/\/th/, async (msg) => {
+  const chatId = msg.chat.id;
+
+  try {
+    const conn = await oracledb.getConnection(dbConfig);
+    await conn.execute(`TRUNCATE TABLE melhor_historico_empire`);
+    await conn.close();
+
+    bot.sendMessage(chatId, '✅ Tabela `melhor_historico_empire` truncada com sucesso!');
+  } catch (err) {
+    console.error(err);
+    bot.sendMessage(chatId, '❌ Erro ao truncar a tabela!');
+  }
+});
 
 app.get('/analisar', async (req, res) => {
   const url = req.query.url;
@@ -31,26 +47,6 @@ app.get('/analisar', async (req, res) => {
     res.status(500).json({ erro: 'Erro ao analisar o item.' });
   }
 });
-
-app.get('/truncaHistorico', async (req, res) => {
-  let connection;
-  try {
-    connection = await oracledb.getConnection(dbConfig);
-    const sql = `TRUNCATE TABLE melhor_historico_empire`;
-    await connection.execute(sql);
-    await connection.commit(); // <- Faz o commit explícito
-
-    bot.sendMessage(chatId, `✅ *Histórico Deletado!*`, { parse_mode: 'Markdown' });
-    res.send('✅ Histórico truncado e commitado com sucesso.'); //retorna no navegador
-
-  } catch (err) {
-    console.error("❌ Erro ao truncar histórico:", err);
-    res.status(500).send('❌ Erro ao truncar histórico.');
-  } finally {
-    if (connection) await connection.close();
-  }
-});
-
 
 const dbConfig = {
   user: process.env.DB_USER,
@@ -111,20 +107,35 @@ async function fetchItensEmpire() {
     const coin = 0.6142808;
 
     const res1 = await fetch(
-      "https://csgoempire.com/api/v2/trading/items?per_page=600&page=1&search=Shadow%20Daggers%20Tiger%20Tooth",
+      "https://csgoempire.com/api/v2/trading/items?per_page=600&page=1&search=Shadow%20Daggers%20Tiger%20Tooth", // shaddow daggers tiger tooth
       options
     );
     const data1 = await res1.json();
     await delay(3000);
+
+    const res4 = await fetch(
+      "https://csgoempire.com/api/v2/trading/items?per_page=600&page=1&search=bowie%20tiger%20tooth", // bowie tiger tooth
+      options
+    );
+    const data4 = await res4.json();
+    await delay(3000);
+
+
     const res2 = await fetch(
-      "https://csgoempire.com/api/v2/trading/items?per_page=600&page=1&search=ursus%20tiger%20tooth",
+      "https://csgoempire.com/api/v2/trading/items?per_page=600&page=1&search=ursus%20tiger%20tooth", // ursus tiger tooth
       options
     );
     const data2 = await res2.json();
+    await delay(3000);
 
-    const todosItens = [...data1.data, ...data2.data];
 
+    const res3 = await fetch(
+      "https://csgoempire.com/api/v2/trading/items?per_page=600&page=1&auction=yes&price_min=200&price_max=10000",  // itens gerais
+      options
+    );
+    const data3 = await res3.json();
 
+    const todosItens = [...data1.data, ...data2.data, ...data3.data, ...data4.data];
 
     itensEmpire = todosItens.map((item) => ({
       id: item.id,
@@ -143,9 +154,6 @@ async function fetchItensEmpire() {
     return null;
   }
 }
-
-
-
 
 let ids_percorridos = [];
 let i;
@@ -286,9 +294,13 @@ function delay(ms) {
 }
 async function executarProcesso() {
   while(true) {
-    await fetchItensBanco();
-    await fetchItensEmpire();
-    await compararItens();
+    try {
+      await fetchItensBanco();
+      await fetchItensEmpire();
+      await compararItens();
+    } catch (err) {
+      console.error("❌ Erro no loop principal:", err.message);
+    }
     await delay(3000);
   }
 }

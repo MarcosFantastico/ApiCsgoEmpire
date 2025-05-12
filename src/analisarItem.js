@@ -16,9 +16,12 @@ function calcularCustoBeneficio(preco, float) {
 }
 
 function calcularPrecoMaximo(custoBeneficioAlvo, floatAtual) {
-  const valorFloat = Math.exp(-FORCA_FLOAT * floatAtual);
-  if (valorFloat === 0) return Infinity;
-  return Math.pow((valorFloat * 100) / custoBeneficioAlvo, 1 / PESO_PRECO);
+
+  if (floatAtual === 0) return Infinity;
+  return (
+    (Math.exp(-FORCA_FLOAT * floatAtual) * 100) / custoBeneficioAlvo
+  ) ** (1 / PESO_PRECO);
+
 }
 
 async function analisarItemCSGOEmpire(url) {
@@ -30,12 +33,13 @@ async function analisarItemCSGOEmpire(url) {
 
   const page = await browser.newPage();
 
-  try{
-  await page.goto(url, { waitUntil: 'domcontentloaded' });
-}catch(error){
- console.error('Erro ao navegar para o item:', url, error);
-    return null; // ou alguma outra forma de sinalizar que falhou
-}
+  try {
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+  } catch (error) {
+    await browser.close(); // Fecha o browser se falhou antes do finally
+    console.error('❌ Erro ao acessar a URL do item:', url);
+    throw new Error(`Falha ao acessar a URL do item: ${url}\nMotivo: ${error.message}`);
+  }
 
   console.log('⏳ Esperando o botão "Recently Sold"...');
 
@@ -95,10 +99,17 @@ async function analisarItemCSGOEmpire(url) {
       return [];
     }
 
-    const melhorItem = historico.reduce((melhor, item) => {
-      const cb = parseFloat(calcularCustoBeneficio(item.precoUSD, item.float).toFixed(2));
-      return cb > melhor.custoBeneficio ? { ...item, custoBeneficio: cb } : melhor;
-    }, { precoUSD: 0, float: 1, custoBeneficio: -Infinity });
+    const melhorItem = historico
+  .map(item => ({
+    ...item,
+    custoBeneficioReal: calcularCustoBeneficio(item.precoUSD, item.float),
+    custoBeneficio: parseFloat(calcularCustoBeneficio(item.precoUSD, item.float).toFixed(2))
+  }))
+  .sort((a, b) => {
+    if (b.custoBeneficioReal !== a.custoBeneficioReal) return b.custoBeneficioReal - a.custoBeneficioReal;
+    if (a.precoUSD !== b.precoUSD) return a.precoUSD - b.precoUSD;
+    return a.float - b.float;
+  })[0];
 
     const itemAtual = {
       float: parseFloat(
@@ -170,7 +181,7 @@ async function analisarItemCSGOEmpire(url) {
     });
 
 
-
+console.log('log melhor item: ')
     console.log({
       preco: parseFloat(melhorItem.precoUSD),
       skin_float: melhorItem.float,

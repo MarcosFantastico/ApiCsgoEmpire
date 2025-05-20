@@ -33,6 +33,22 @@ bot.onText(/\/th/, async (msg) => {
   }
 });
 
+let botAtivo = true;
+
+bot.onText(/\/pause/, async (msg) => {
+  const chatId = msg.chat.id;
+  botAtivo = false;
+  bot.sendMessage(chatId, '🛑 Bot pausado com sucesso!');
+});
+
+bot.onText(/\/start/, async (msg) => {
+  const chatId = msg.chat.id;
+  botAtivo = true;
+  bot.sendMessage(chatId, '✅ Bot retomado com sucesso!');
+});
+
+
+
 app.get('/analisar', async (req, res) => {
   const url = req.query.url;
 
@@ -147,7 +163,7 @@ async function fetchItensEmpire() {
       preco_sugerido: (Number(item.suggested_price) / 100) * coin,
       desconto_overpay: item.above_recommended_price,
     }));
-    console.log("✅ Itens especificos do Empire foram carregados!");
+   // console.log("✅ Itens especificos do Empire foram carregados!");
    // console.log(itensEmpire)
   } catch (err) {
     console.error("❌ Erro ao buscar itens do Empire:", err);
@@ -285,7 +301,7 @@ async function compararItens() {
       await conn.close();
     }
   }
-  
+
 
 
 }
@@ -294,6 +310,13 @@ function delay(ms) {
 }
 async function executarProcesso() {
   while(true) {
+
+    // verificação comando /start /pause
+    if(!botAtivo ){
+      await delay(1000);
+      continue;
+      }
+
     try {
       await fetchItensBanco();
       await fetchItensEmpire();
@@ -302,6 +325,7 @@ async function executarProcesso() {
       console.error("❌ Erro no loop principal:", err.message);
     }
     await delay(3000);
+ 
   }
 }
 executarProcesso();

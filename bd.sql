@@ -1,8 +1,9 @@
--- criação das tabelas
-
+-- caso precise usar rodar define off antes da execução e reabilitar depois
 set define off; -- para fazer o & não ser interpretado como variavel mutável
 set define on; -- voltar dps do processo de insert
 
+-- criação das tabelas
+-- drop tables
 drop table log_jobs;
 commit;
 drop table melhor_historico_empire;
@@ -11,12 +12,25 @@ drop table skin;
 commit;
 drop table arma;
 commit;
-
+-- drop sequences
 DROP SEQUENCE SEQ_lj;
 DROP SEQUENCE SEQ_ARMA;
 DROP SEQUENCE SEQ_SKIN;
 DROP SEQUENCE SEQ_MHE;
 commit;
+-- drop procs
+drop procedure PROC_DROPA_HISTORICO;
+commit;
+
+-- drop jobs
+/
+BEGIN
+  DBMS_SCHEDULER.DROP_JOB('COUNTERSTRIKE.dropaHistorico');
+END;
+/
+commit;
+
+
 
 -- Criação das sequências
 CREATE SEQUENCE SEQ_lj START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
@@ -49,7 +63,7 @@ commit;
 CREATE TABLE melhor_historico_empire (
     id NUMBER DEFAULT SEQ_MHE.NEXTVAL PRIMARY KEY,
     preco NUMBER(10,2) NOT NULL,
-    skin_float BINARY_FLOAT NOT NULL,
+    skin_float BINARY_FLOAT,
     skin_id NUMBER NOT NULL,
     arma_id NUMBER NOT NULL,
     qualidade VARCHAR2(100) NOT NULL,
@@ -154,13 +168,14 @@ COMMIT;
 -- select * from arma;
 -- select * from skin;
 -- skins para luvas
-INSERT INTO skin (nome, arma_id) VALUES ('Transport',63);
+
+INSERT INTO skin (nome, arma_id) VALUES ('Transport',64);
 
 -- skins para facas
 
 INSERT INTO skin (nome, arma_id) VALUES ('Tiger Tooth',61);
 INSERT INTO skin (nome, arma_id) VALUES ('Tiger Tooth',62);
-INSERT INTO skin (nome, arma_id) VALUES ('Tiger Tooth',64);
+INSERT INTO skin (nome, arma_id) VALUES ('Tiger Tooth',63);
 
 -- Skins para Rifles
 INSERT INTO skin (nome, arma_id) VALUES ('Atheris', 4);            -- AWP ??
@@ -188,7 +203,7 @@ INSERT INTO skin (nome, arma_id) VALUES ('Neo-Noir', 17);         -- Glock-18 ??
 INSERT INTO skin (nome, arma_id) VALUES ('Neo-Noir', 18);     -- USP-S ??
 INSERT INTO skin (nome, arma_id) VALUES ('Neo-Noir', 4);    -- awp
 INSERT INTO skin (nome, arma_id) VALUES ('Neo-Noir', 2);    -- a4
-select * from arma;
+--select * from arma;
 
 -- Skins Especiais
 INSERT INTO skin (nome, arma_id) VALUES ('Dragon King', 2);       -- M4A4 ??
@@ -211,6 +226,7 @@ INSERT INTO skin (nome, arma_id) VALUES ('Nightwish', 1);         -- AWP ??
 INSERT INTO skin (nome, arma_id) VALUES ('Temukau', 2);           -- M4A4 ??
 INSERT INTO skin (nome, arma_id) VALUES ('Printstream', 3);       -- M4A1-S ??
 INSERT INTO skin (nome, arma_id) VALUES ('Printstream', 20);      -- Desert Eagle ??
+INSERT INTO skin (nome, arma_id) VALUES ('Printstream', 18);         -- USP-S ??
 INSERT INTO skin (nome, arma_id) VALUES ('Redline', 1);           -- AK-47 ??
 INSERT INTO skin (nome, arma_id) VALUES ('Sun in Leo', 4);        -- AWP ??
 INSERT INTO skin (nome, arma_id) VALUES ('Whiteout', 18);         -- USP-S ??
@@ -239,6 +255,8 @@ INSERT INTO skin (nome, arma_id) VALUES ('Carved Jade', 5);       -- AUG ?? (cor
 -- stat tracks
 
 -- Skins associadas às armas StatTrak™ (arma_id + 30)
+
+INSERT INTO skin (nome, arma_id) VALUES ('Printstream', 48);  
 INSERT INTO skin (nome, arma_id) VALUES ('Neo-Noir', 34);    -- awp
 INSERT INTO skin (nome, arma_id) VALUES ('Neo-Noir', 32); -- a4
 
@@ -320,41 +338,36 @@ COMMIT;
 
 -- fim criacao de triggers
 
--- criação de jobs:
+-- criação das procs
+/
+CREATE OR REPLACE PROCEDURE COUNTERSTRIKE.PROC_DROPA_HISTORICO AS
 BEGIN
-  DBMS_SCHEDULER.DROP_JOB('COUNTERSTRIKE.dropaHistorico');
+
+  INSERT INTO log_jobs VALUES(SEQ_lj.nextval,SYSDATE, 'Job executado');
+  EXECUTE IMMEDIATE 'TRUNCATE TABLE melhor_historico_empire';
 END;
+/
+commit;
+
+
+-- criação de jobs:
+
 /
 BEGIN
   DBMS_SCHEDULER.CREATE_JOB (
     job_name        => 'COUNTERSTRIKE.dropaHistorico',
     job_type        => 'PLSQL_BLOCK',
-    job_action      => 'BEGIN 
-                          truncate table melhor_historico_empire;
-                          INSERT INTO logs_jobs VALUES(SYSDATE, ''Job executado'');
-                          COMMIT; 
-                        END;',
+    job_action      => 'BEGIN COUNTERSTRIKE.PROC_DROPA_HISTORICO; END;',
     start_date      => SYSTIMESTAMP,
-    repeat_interval => 'FREQ=DAILY; BYHOUR=3; BYMINUTE=0; BYSECOND=0',
-    enabled         => FALSE,
-    comments        => 'Job para truncar a tabela de histórico diariamente às 03h e rodar mesmo após falha.'
-  );
-
-  -- Garante que o job rode se perder a execução por falha ou reinício
-  DBMS_SCHEDULER.SET_ATTRIBUTE(
-    name      => 'COUNTERSTRIKE.dropaHistorico',
-    attribute => 'restart_on_recovery',
-    value     => TRUE
-  );
-
-  -- Ativa o job após configuração completa
-  DBMS_SCHEDULER.ENABLE('COUNTERSTRIKE.dropaHistorico');
+    repeat_interval => 'FREQ=DAILY; BYHOUR=0; BYMINUTE=0; BYSECOND=0',
+    enabled         => TRUE,
+    comments        => 'Job para truncar a tabela de histórico a cada minuto.');
 END;
 /
+commit;
 -- fim criação de jobs
 -- fim de tudo
 
--
 -- queries
 -- armas
 SELECT a.nome || ' | ' || s.nome AS "Arma | Skin" FROM arma a INNER JOIN  skin s ON a.id = s.arma_id ORDER BY a.nome ASC, s.nome ASC;
@@ -375,6 +388,13 @@ join skin sk on sk.id = mhe.skin_id
 join arma ar on ar.id = mhe.arma_id
 ;
 commit;
+
+SELECT a.nome || ' | ' || s.nome AS "Arma | Skin"
+      FROM arma a
+      INNER JOIN skin s ON a.id = s.arma_id
+      ORDER BY a.nome ASC, s.nome ASC;
+
+select * from log_jobs;
 
 truncate table melhor_historico_empire;
 commit;

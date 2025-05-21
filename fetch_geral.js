@@ -2,7 +2,7 @@
 const express = require("express");
 const oracledb = require("oracledb");
 const cors = require("cors");
-const say = require("say");
+const axios = require('axios');
 const { analisarItemCSGOEmpire } = require("./src/analisarItem");
 const { calcularCustoBeneficio } = require("./src/analisarItem");
 const { calcularPrecoMaximo } = require("./src/analisarItem");
@@ -10,6 +10,7 @@ require("dotenv").config({ path: 'credentials.env' });
 const app = express();
 app.use(express.json());
 app.use(cors());
+
 const TelegramBot = require('node-telegram-bot-api');
 
 // Chat ID
@@ -116,11 +117,13 @@ async function fetchItensBanco() {
     if (connection) await connection.close();
   }
 }
+const coin = 0.6142808;
 
 async function fetchItensEmpire() {
 
   try {
-    const coin = 0.6142808;
+    
+/*  Itens especívicos, descomentar e alterar a variável todosItens para o funcionamento correto
 
     const res1 = await fetch(
       "https://csgoempire.com/api/v2/trading/items?per_page=600&page=1&search=Shadow%20Daggers%20Tiger%20Tooth", // shaddow daggers tiger tooth
@@ -144,14 +147,15 @@ async function fetchItensEmpire() {
     const data2 = await res2.json();
     await delay(3000);
 
-
+*/
     const res3 = await fetch(
-      "https://csgoempire.com/api/v2/trading/items?per_page=600&page=1&auction=yes&price_min=200&price_max=10000",  // itens gerais
+      "https://csgoempire.com/api/v2/trading/items?per_page=600&page=1&auction=yes&price_min=200&price_max=10000",  // leilao
       options
     );
     const data3 = await res3.json();
 
-    const todosItens = [...data1.data, ...data2.data, ...data3.data, ...data4.data];
+    //const todosItens = [...data1.data, ...data2.data, ...data3.data, ...data4.data];
+    const todosItens = [...data3.data];
 
     itensEmpire = todosItens.map((item) => ({
       id: item.id,
@@ -198,7 +202,7 @@ async function compararItens() {
       console.log(`Lance atual: $${match.lance_atual.toFixed(2)}`);
       console.log(`Preço Sugerido: $${match.preco_sugerido.toFixed(2)}`);
       console.log(`Desconto / Overpay: ${match.desconto_overpay}%`);
-      const url = `https://csgoempire.com/item/${match.id}`;
+      const url = `https://csgoempirev2.com/item/${match.id}`;
       console.log("🔗 URL do Item:", url);
   
       const conn = await oracledb.getConnection({
@@ -293,6 +297,23 @@ async function compararItens() {
   🔗 ${url}`,
             { parse_mode: 'Markdown' }
           );
+
+
+await axios.post('https://script.google.com/macros/s/AKfycbwFnO1vvK2X2LQd7fJW7VsjEYKliGOPuLRRvO_cMfgiGXOZ72wiHxnEdD2z7lbRq2uklg/exec', {
+  nome: match.nome,
+  qualidade: match.qualidade,
+  precoAtual: resultado.precoAtual.toFixed(2),
+  floatAtual: resultado.floatAtual.toFixed(3),
+  cbAtual: resultado.custoBeneficioAtual.toFixed(2),
+  precoMelhor: resultado.melhorItem.precoUSD.toFixed(2),
+  floatMelhor: resultado.melhorItem.float.toFixed(3),
+  cbMelhor: resultado.melhorItem.custoBeneficio.toFixed(2),
+  precoMaximo: resultado.precoMaximo.toFixed(2),
+  diferenca: resultado.diferencaPreco.toFixed(2),
+  url
+});
+
+
         }
       } else {
         console.log("⚠️ Nenhum item histórico encontrado.");

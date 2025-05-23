@@ -302,14 +302,14 @@ async function compararItens() {
 await axios.post('https://script.google.com/macros/s/AKfycbwFnO1vvK2X2LQd7fJW7VsjEYKliGOPuLRRvO_cMfgiGXOZ72wiHxnEdD2z7lbRq2uklg/exec', {
   nome: match.nome,
   qualidade: match.qualidade,
-  precoAtual: resultado.precoAtual.toFixed(2),
-  floatAtual: resultado.floatAtual.toFixed(3),
-  cbAtual: resultado.custoBeneficioAtual.toFixed(2),
-  precoMelhor: resultado.melhorItem.precoUSD.toFixed(2),
-  floatMelhor: resultado.melhorItem.float.toFixed(3),
-  cbMelhor: resultado.melhorItem.custoBeneficio.toFixed(2),
-  precoMaximo: resultado.precoMaximo.toFixed(2),
-  diferenca: resultado.diferencaPreco.toFixed(2),
+  precoAtual: resultado?.precoAtual ?? '',
+  floatAtual: resultado?.floatAtual ?? '',
+  cbAtual: resultado?.custoBeneficioAtual ?? '',
+  precoMelhor: resultado?.melhorItem?.precoUSD ?? '',
+  floatMelhor: resultado?.melhorItem?.float ?? '',
+  cbMelhor: resultado?.melhorItem?.custoBeneficio ?? '',
+  precoMaximo: resultado?.precoMaximo ?? '',
+  diferenca: resultado?.diferencaPreco ?? '',
   url
 });
 
